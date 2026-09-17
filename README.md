@@ -1,66 +1,91 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Đồ án quản lý kho — DATN2026-VS2
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Hệ thống quản lý kho được xây dựng trong khuôn khổ đồ án tốt nghiệp, tập trung vào quản lý sản phẩm, kho hàng và các nghiệp vụ nhập — xuất — điều chỉnh tồn kho.
 
-## About Laravel
+## Phạm vi
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Hệ thống hiện tập trung vào các sản phẩm liên quan đến xe đạp:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+* Xe đạp
+* Phụ tùng
+* Phụ kiện
+* Săm / lốp
+* Xích
+* Phanh
+* Linh kiện
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Thiết kế được xây dựng theo hướng có thể mở rộng trong tương lai nhưng không đưa các nghiệp vụ ERP phức tạp vào phạm vi hiện tại.
 
-## Learning Laravel
+## Kiến trúc tồn kho
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Các thành phần chính:
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+```text
+Product
+   │
+   └── Stock
+         │
+         └── StockLot
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Warehouse
+   │
+   └── Stock
 
-## Laravel Sponsors
+InventoryService
+   ├── Receive
+   ├── Issue
+   └── Adjustment
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+StockMovement
+   │
+   └── StockAllocation
+             │
+             └── StockLot
+```
 
-### Premium Partners
+Trong đó:
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+* **Product**: thông tin sản phẩm, không quản lý số lượng tồn.
+* **Warehouse**: kho hàng.
+* **Stock**: số lượng tồn hiện tại của sản phẩm trong từng kho.
+* **StockLot**: lượng hàng còn lại theo từng lần nhập.
+* **StockMovement**: lịch sử biến động tồn kho.
+* **StockAllocation**: ghi nhận các StockLot được sử dụng cho một lần xuất kho.
+* **InventoryService**: lớp nghiệp vụ trung tâm quản lý các thay đổi tồn kho.
 
-## Contributing
+Tồn kho phải luôn đảm bảo:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```text
+Stock.quantity_on_hand
+=
+SUM(StockLot.quantity_remaining)
+```
 
-## Code of Conduct
+Nghiệp vụ xuất kho hiện sử dụng **FIFO** dựa trên thời điểm nhập hàng.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Cấu trúc repository
 
-## Security Vulnerabilities
+```text
+├── app/          # Source code chính
+├── database/     # Migrations, seeders, ...
+├── routes/       # Application routes
+├── resources/    # Giao diện / tài nguyên
+├── tests/        # Automated tests
+├── docs/         # Tài liệu kiến trúc, database và nghiệp vụ
+├── .vscode/      # Cấu hình VS Code
+├── CLAUDE.md     # Hướng dẫn cho Claude
+├── AGENTS.md     # Hướng dẫn cho Codex/AI agents
+└── README.md
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Tài liệu
 
-## License
+Tài liệu kiến trúc và quy tắc phát triển được lưu trong thư mục [`docs/`](docs/).
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Các AI agent cần đọc tài liệu trong `docs/ai/` trước khi thực hiện thay đổi quan trọng đối với project.
+
+---
+
+**Project:** DATN2026-VS2
+**Tên:** Đồ án quản lý kho
+**Mục đích:** Phục vụ nghiên cứu, phát triển và hoàn thiện đồ án tốt nghiệp.
