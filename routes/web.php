@@ -11,6 +11,8 @@ use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\MediaFolderController;
+use App\Http\Controllers\Admin\WarehouseController;
+use App\Http\Controllers\Admin\StockController;
 use Illuminate\Support\Facades\Route;
 
 // ── Trang chủ redirect ──────────────────────────────────────────────────────
@@ -221,5 +223,40 @@ Route::middleware(['auth', 'active'])->prefix('admin')->name('admin.')->group(fu
         Route::delete('/{folder}/force', [MediaFolderController::class, 'forceDelete'])
             ->withTrashed()
             ->middleware('permission:media-folder.force-delete')->name('force-delete');
+    });
+
+    // ── Warehouses ─────────────────────────────────────────────────────────
+
+    Route::prefix('warehouses')->name('warehouses.')->group(function () {
+        Route::get('/', [WarehouseController::class, 'index'])
+            ->middleware('permission:warehouses.view')->name('index');
+
+        Route::get('/create', [WarehouseController::class, 'create'])
+            ->middleware('permission:warehouses.create')->name('create');
+
+        Route::post('/', [WarehouseController::class, 'store'])
+            ->middleware('permission:warehouses.create')->name('store');
+
+        Route::get('/{warehouse}', [WarehouseController::class, 'show'])
+            ->middleware('permission:warehouses.view')->name('show');
+
+        Route::get('/{warehouse}/edit', [WarehouseController::class, 'edit'])
+            ->middleware('permission:warehouses.update')->name('edit');
+
+        Route::put('/{warehouse}', [WarehouseController::class, 'update'])
+            ->middleware('permission:warehouses.update')->name('update');
+
+        Route::delete('/{warehouse}', [WarehouseController::class, 'destroy'])
+            ->middleware('permission:warehouses.delete')->name('destroy');
+    });
+
+    // ── Stock ─────────────────────────────────────────────────────────
+
+    Route::prefix('stock')->name('stock.')->group(function () {
+        Route::get('/', [StockController::class, 'index'])
+            ->middleware('permission:stock.view')->name('index');
+
+        Route::get('/{stock}', [StockController::class, 'show'])
+            ->middleware('permission:stock.view')->name('show');
     });
 });
