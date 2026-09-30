@@ -1,105 +1,147 @@
 <script setup>
-import { ref, watch } from 'vue'
-import { router, Link } from '@inertiajs/vue3'
-import AdminLayout from '@/Layouts/AdminLayout.vue'
-import InputField from '@/Components/InputField.vue'
-import Badge from '@/Components/Badge.vue'
-import FlashMessage from '@/Components/FlashMessage.vue'
+import { Head, Link, router } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
+import AdminLayout from '@/Layouts/AdminLayout.vue';
+import Badge from '@/Components/UI/Badge.vue';
+
+defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
-  warehouses: Object,
-  filters: Object,
-})
+    pageTitle:   { type: String, default: '' },
+    warehouses:  { type: Object, required: true }, // Laravel paginator
+    filters:     { type: Object, default: () => ({ search: '' }) },
+});
 
-const search = ref(props.filters?.search ?? '')
+const search = ref(props.filters.search ?? '');
 
-let debounceTimer = null
-watch(search, (value) => {
-  clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
-    router.get(route('admin.warehouses.index'), { search: value }, {
-      preserveState: true,
-      replace: true,
-    })
-  }, 400)
-})
+let debounceTimer;
+watch(search, () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        router.get('/admin/warehouses',
+            { search: search.value },
+            { preserveState: true, replace: true }
+        );
+    }, 400);
+});
 
 function destroyWarehouse(warehouse) {
-  if (!confirm(`Xoá kho "${warehouse.name}"? Hành động này không thể hoàn tác.`)) {
-    return
-  }
-
-  router.delete(route('admin.warehouses.destroy', warehouse.id))
+    if (!confirm(`Xoá kho "${warehouse.name}"? Hành động này không thể hoàn tác.`)) return;
+    router.delete(`/admin/warehouses/${warehouse.id}`, { preserveScroll: true });
 }
 </script>
 
 <template>
-  <AdminLayout title="Kho hàng">
-    <FlashMessage />
+    <Head :title="pageTitle" />
 
-    <div class="flex items-center justify-between mb-4">
-      <h1 class="text-xl font-semibold">Danh sách kho hàng</h1>
-      <Link
-        :href="route('admin.warehouses.create')"
-        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-      >
-        + Thêm kho hàng
-      </Link>
-    </div>
+    <div class="space-y-4">
 
-    <div class="mb-4 max-w-sm">
-      <InputField v-model="search" placeholder="Tìm theo mã hoặc tên kho..." />
-    </div>
+        <!-- Toolbar -->
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <input
+                v-model="search"
+                type="text"
+                placeholder="Tìm theo mã hoặc tên kho..."
+                class="w-60 rounded-lg border border-slate-300 px-3 py-2 text-sm
+                       focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
 
-    <div class="bg-white rounded-lg shadow overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã kho</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên kho</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Địa chỉ</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số SP đang tồn</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          <tr v-for="warehouse in warehouses.data" :key="warehouse.id">
-            <td class="px-4 py-3 font-mono text-sm">{{ warehouse.code }}</td>
-            <td class="px-4 py-3">{{ warehouse.name }}</td>
-            <td class="px-4 py-3 text-sm text-gray-500">{{ warehouse.address ?? '—' }}</td>
-            <td class="px-4 py-3">{{ warehouse.stocks_count ?? 0 }}</td>
-            <td class="px-4 py-3">
-              <Badge :variant="warehouse.is_active ? 'success' : 'default'">
-                {{ warehouse.is_active ? 'Hoạt động' : 'Ngừng hoạt động' }}
-              </Badge>
-            </td>
-            <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap">
-              <Link :href="route('admin.warehouses.show', warehouse.id)" class="text-blue-600 hover:underline">Xem</Link>
-              <Link :href="route('admin.warehouses.edit', warehouse.id)" class="text-amber-600 hover:underline">Sửa</Link>
-              <button type="button" class="text-red-600 hover:underline" @click="destroyWarehouse(warehouse)">
-                Xoá
-              </button>
-            </td>
-          </tr>
-          <tr v-if="warehouses.data.length === 0">
-            <td colspan="6" class="px-4 py-6 text-center text-gray-400">Chưa có kho hàng nào.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            <Link
+                href="/admin/warehouses/create"
+                class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2
+                       text-sm font-medium text-white transition hover:bg-indigo-700"
+            >
+                + Thêm kho hàng
+            </Link>
+        </div>
 
-    <div class="mt-4 flex justify-center gap-1">
-      <template v-for="link in warehouses.links" :key="link.label">
-        <Link
-          v-if="link.url"
-          :href="link.url"
-          v-html="link.label"
-          class="px-3 py-1 rounded"
-          :class="link.active ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
-        />
-        <span v-else v-html="link.label" class="px-3 py-1 text-gray-300" />
-      </template>
+        <!-- Table -->
+        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-100 bg-slate-50 text-left">
+                            <th class="px-4 py-3 font-medium text-slate-600">Mã kho</th>
+                            <th class="px-4 py-3 font-medium text-slate-600">Tên kho</th>
+                            <th class="px-4 py-3 font-medium text-slate-600">Địa chỉ</th>
+                            <th class="px-4 py-3 font-medium text-slate-600">Số SP đang tồn</th>
+                            <th class="px-4 py-3 font-medium text-slate-600">Trạng thái</th>
+                            <th class="px-4 py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        <tr v-if="warehouses.data.length === 0">
+                            <td colspan="6" class="px-4 py-10 text-center text-slate-400">
+                                Chưa có kho hàng nào.
+                            </td>
+                        </tr>
+
+                        <tr
+                            v-for="warehouse in warehouses.data"
+                            :key="warehouse.id"
+                            class="transition-colors hover:bg-slate-50"
+                        >
+                            <td class="px-4 py-3 font-mono text-slate-600">{{ warehouse.code }}</td>
+                            <td class="px-4 py-3 font-medium text-slate-800">{{ warehouse.name }}</td>
+                            <td class="px-4 py-3 text-slate-500">{{ warehouse.address ?? '—' }}</td>
+                            <td class="px-4 py-3 text-slate-500">{{ warehouse.stocks_count ?? 0 }}</td>
+                            <td class="px-4 py-3">
+                                <Badge :variant="warehouse.is_active ? 'green' : 'gray'">
+                                    {{ warehouse.is_active ? 'Hoạt động' : 'Ngừng hoạt động' }}
+                                </Badge>
+                            </td>
+                            <td class="px-4 py-3 text-right">
+                                <div class="flex items-center justify-end gap-3">
+                                    <Link
+                                        :href="`/admin/warehouses/${warehouse.id}`"
+                                        class="font-medium text-slate-600 hover:text-slate-800"
+                                    >
+                                        Xem
+                                    </Link>
+                                    <Link
+                                        :href="`/admin/warehouses/${warehouse.id}/edit`"
+                                        class="font-medium text-indigo-600 hover:text-indigo-800"
+                                    >
+                                        Sửa
+                                    </Link>
+                                    <button
+                                        class="font-medium text-red-500 hover:text-red-700"
+                                        @click="destroyWarehouse(warehouse)"
+                                    >
+                                        Xoá
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div
+                v-if="warehouses.last_page > 1"
+                class="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-sm"
+            >
+                <span class="text-slate-500">
+                    Hiển thị {{ warehouses.from }}–{{ warehouses.to }} / {{ warehouses.total }} kho hàng
+                </span>
+                <div class="flex gap-1">
+                    <Link
+                        v-for="link in warehouses.links"
+                        :key="link.label"
+                        :href="link.url ?? '#'"
+                        :class="[
+                            'rounded-lg border px-3 py-1 text-xs transition',
+                            link.active
+                                ? 'border-indigo-600 bg-indigo-600 text-white'
+                                : 'border-slate-200 text-slate-600 hover:border-indigo-300',
+                            !link.url && 'pointer-events-none opacity-40',
+                        ]"
+                        v-html="link.label"
+                        preserve-scroll
+                    />
+                </div>
+            </div>
+        </div>
     </div>
-  </AdminLayout>
 </template>

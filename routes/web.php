@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\MediaFolderController;
 use App\Http\Controllers\Admin\WarehouseController;
 use App\Http\Controllers\Admin\StockController;
+use App\Http\Controllers\Admin\InventoryController;
 use Illuminate\Support\Facades\Route;
 
 // ── Trang chủ redirect ──────────────────────────────────────────────────────
@@ -226,7 +227,6 @@ Route::middleware(['auth', 'active'])->prefix('admin')->name('admin.')->group(fu
     });
 
     // ── Warehouses ─────────────────────────────────────────────────────────
-
     Route::prefix('warehouses')->name('warehouses.')->group(function () {
         Route::get('/', [WarehouseController::class, 'index'])
             ->middleware('permission:warehouses.view')->name('index');
@@ -251,12 +251,33 @@ Route::middleware(['auth', 'active'])->prefix('admin')->name('admin.')->group(fu
     });
 
     // ── Stock ─────────────────────────────────────────────────────────
-
     Route::prefix('stock')->name('stock.')->group(function () {
         Route::get('/', [StockController::class, 'index'])
             ->middleware('permission:stock.view')->name('index');
 
         Route::get('/{stock}', [StockController::class, 'show'])
             ->middleware('permission:stock.view')->name('show');
+    });
+
+    // ── Inventory (Phase H — Receive/Issue/Adjustment HTTP layer) ───────────
+    // Business logic 100% ở InventoryService, Controller chỉ chuyển tiếp.
+    Route::prefix('inventory')->name('inventory.')->group(function () {
+        Route::get('/', [InventoryController::class, 'index'])
+            ->middleware('permission:stock.view')->name('index');
+
+        Route::get('/receive', [InventoryController::class, 'createReceive'])
+            ->middleware('permission:stock.receive')->name('receive.create');
+        Route::post('/receive', [InventoryController::class, 'storeReceive'])
+            ->middleware('permission:stock.receive')->name('receive.store');
+
+        Route::get('/issue', [InventoryController::class, 'createIssue'])
+            ->middleware('permission:stock.issue')->name('issue.create');
+        Route::post('/issue', [InventoryController::class, 'storeIssue'])
+            ->middleware('permission:stock.issue')->name('issue.store');
+
+        Route::get('/adjustment', [InventoryController::class, 'createAdjustment'])
+            ->middleware('permission:stock.adjust')->name('adjustment.create');
+        Route::post('/adjustment', [InventoryController::class, 'storeAdjustment'])
+            ->middleware('permission:stock.adjust')->name('adjustment.store');
     });
 });

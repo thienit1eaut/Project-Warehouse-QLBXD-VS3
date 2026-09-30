@@ -1,0 +1,28 @@
+php artisan tinker
+
+$roles = \App\Models\Role::pluck('id', 'slug');
+
+$admin = \App\Models\User::create([
+    'name' => 'Admin Demo',
+    'email' => 'admin@example.com',
+    'password' => 'password',
+    'role_id' => $roles['admin'],
+    'is_active' => true,
+    'is_protected' => true, // khuyến nghị: bảo vệ tài khoản admin gốc khỏi bị xoá/đổi role nhầm
+]);
+
+$manager = \App\Models\User::create([
+    'name' => 'Manager Demo',
+    'email' => 'manager@example.com',
+    'password' => 'password',
+    'role_id' => $roles['manager'],
+    'is_active' => true,
+]);
+
+$staff = \App\Models\User::create([
+    'name' => 'Staff Demo',
+    'email' => 'staff@example.com',
+    'password' => 'password',
+    'role_id' => $roles['staff'],
+    'is_active' => true,
+]);

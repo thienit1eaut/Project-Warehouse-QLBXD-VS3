@@ -7,21 +7,33 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Stock extends Model
+class StockLot extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'stock_id',
         'warehouse_id',
         'product_id',
-        'quantity_on_hand',
+        'quantity_received',
+        'quantity_remaining',
+        'received_at',
+        'expiry_date',
     ];
 
     protected function casts(): array
     {
         return [
-            'quantity_on_hand' => 'decimal:3',
+            'quantity_received'  => 'decimal:3',
+            'quantity_remaining' => 'decimal:3',
+            'received_at'        => 'datetime',
+            'expiry_date'        => 'date',
         ];
+    }
+
+    public function stock(): BelongsTo
+    {
+        return $this->belongsTo(Stock::class);
     }
 
     public function warehouse(): BelongsTo
@@ -34,8 +46,8 @@ class Stock extends Model
         return $this->belongsTo(Product::class);
     }
 
-    public function stockLots(): HasMany
+    public function allocations(): HasMany
     {
-        return $this->hasMany(StockLot::class);
+        return $this->hasMany(StockAllocation::class);
     }
 }

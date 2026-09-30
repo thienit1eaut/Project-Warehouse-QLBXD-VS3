@@ -8,53 +8,52 @@ use App\Models\Role;
 use Illuminate\Database\Seeder;
 
 /**
- * !!! QUAN TRỌNG - ĐỌC TRƯỚC KHI CHẠY !!!
+ * FIX (Phase A - foundation correction):
+ * - Bản trước dùng cột 'slug' cho Permission — schema thật của bảng `permissions`
+ *   là module_id + action + name (KHÔNG có cột slug, xem PermissionSeeder.php làm
+ *   mẫu chuẩn). Đã sửa lại đúng cột thật.
+ * - Module 'warehouses'/'stock' giờ do ModuleSeeder tạo (single source of truth
+ *   cho module, cùng chỗ với category/brand/supplier/unit/media/media-folder) —
+ *   seeder này chỉ fetch lại bằng where('slug', ...)->firstOrFail(), không tự
+ *   tạo Module nữa để tránh duplicate logic giữa 2 seeder.
  *
- * File này được viết mà KHÔNG có schema thật của bảng modules/permissions/roles/role_permission
- * (spec chỉ nói "4 bảng ... Model đã tồn tại" nhưng không cho biết tên cột chính xác).
- * Migration/Model Module, Permission, Role của bạn CÓ THỂ dùng tên cột khác (ví dụ 'code' thay vì
- * 'slug', hoặc quan hệ many-to-many đặt tên khác 'permissions()'). HÃY đối chiếu với migration/Model
- * thật rồi sửa lại các dòng có đánh dấu (*) dưới đây trước khi chạy.
+ * Permission tạo ở đây:
+ *   warehouses.view / warehouses.create / warehouses.update / warehouses.delete
+ *   stock.view
+ * Gán cho Role admin + manager (syncWithoutDetaching, idempotent). Role staff
+ * KHÔNG được cấp mặc định — đúng quyết định nghiệp vụ đã chốt trước đó.
  *
- * Chạy: php artisan db:seed --class=WarehouseStockPermissionSeeder
+ * Được gọi từ DatabaseSeeder SAU RolePermissionSeeder (không đưa logic gán
+ * permission cho warehouses/stock vào RolePermissionSeeder để giữ tách biệt
+ * theo đúng convention "1 seeder phụ trách 1 phần domain mới" mà project đang dùng).
  */
 class WarehouseStockPermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        // (*) Nếu Module dùng cột 'code' thay vì 'slug', đổi 'slug' => 'code' ở dưới.
-        $warehouseModule = Module::firstOrCreate(
-            ['slug' => 'warehouses'],
-            ['name' => 'Kho hàng']
-        );
-
-        $stockModule = Module::firstOrCreate(
-            ['slug' => 'stock'],
-            ['name' => 'Tồn kho']
-        );
+        $warehouseModule = Module::where('slug', 'warehouses')->firstOrFail();
+        $stockModule = Module::where('slug', 'stock')->firstOrFail();
 
         $warehousePermissions = collect(['view', 'create', 'update', 'delete'])
             ->map(function (string $action) use ($warehouseModule) {
-                // (*) Đổi tên cột 'slug' / 'module_id' nếu Permission model dùng tên khác.
                 return Permission::firstOrCreate(
-                    [
-                        'slug' => "warehouses.{$action}",
-                        'module_id' => $warehouseModule->id,
-                    ],
+                    ['module_id' => $warehouseModule->id, 'action' => $action],
                     ['name' => 'Kho hàng - ' . ucfirst($action)]
                 );
             });
 
-        $stockPermissions = collect(['view'])
-            ->map(function (string $action) use ($stockModule) {
-                return Permission::firstOrCreate(
-                    [
-                        'slug' => "stock.{$action}",
-                        'module_id' => $stockModule->id,
-                    ],
-                    ['name' => 'Tồn kho - ' . ucfirst($action)]
-                );
-            });
+            $stockPermissions = collect([
+                'view' => 'Xem tồn kho',
+                'receive' => 'Nhập kho',
+                'issue' => 'Xuất kho',
+                'adjust' => 'Điều chỉnh tồn kho',
+            ])
+                ->map(function (string $name, string $action) use ($stockModule) {
+                    return Permission::firstOrCreate(
+                        ['module_id' => $stockModule->id, 'action' => $action],
+                        ['name' => $name]
+                    );
+                });
 
         $allPermissionIds = $warehousePermissions
             ->merge($stockPermissions)
@@ -62,7 +61,6 @@ class WarehouseStockPermissionSeeder extends Seeder
 
         // Gán cho admin + manager, KHÔNG gán cho staff.
         foreach (['admin', 'manager'] as $roleSlug) {
-            // (*) Đổi 'slug' nếu Role model dùng tên cột khác (ví dụ 'code' hoặc 'name').
             $role = Role::where('slug', $roleSlug)->first();
 
             if ($role === null) {
@@ -70,7 +68,6 @@ class WarehouseStockPermissionSeeder extends Seeder
                 continue;
             }
 
-            // (*) Đổi 'permissions()' nếu quan hệ many-to-many trên Role model đặt tên khác.
             $role->permissions()->syncWithoutDetaching($allPermissionIds);
         }
     }

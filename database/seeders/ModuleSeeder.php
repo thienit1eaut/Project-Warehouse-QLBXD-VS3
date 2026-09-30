@@ -17,6 +17,8 @@ class ModuleSeeder extends Seeder
             ['name' => 'Đơn vị tính',   'slug' => 'unit',         'description' => 'Quản lý đơn vị tính sản phẩm.'],
             ['name' => 'Media',         'slug' => 'media',        'description' => 'Quản lý file media (ảnh, video, tài liệu).'],
             ['name' => 'Media Folder',  'slug' => 'media-folder', 'description' => 'Quản lý thư mục chứa media.'],
+            ['name' => 'Kho hàng',      'slug' => 'warehouses',   'description' => 'Quản lý kho hàng (warehouse).'],
+            ['name' => 'Tồn kho',       'slug' => 'stock',        'description' => 'Xem tồn kho hiện tại và lịch sử biến động (StockMovement).'],
         ];
  
         foreach ($modules as $data) {

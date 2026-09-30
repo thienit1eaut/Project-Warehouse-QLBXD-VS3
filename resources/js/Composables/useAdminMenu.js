@@ -55,35 +55,57 @@ export const adminMenu = [
                 icon: icon('M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18 3.75h.008v.008H18V3.75zM6 21h12a2.25 2.25 0 002.25-2.25V5.25A2.25 2.25 0 0018 3H6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 006 21z'),
             },
             {
+                // FIX: trước đây trỏ '/admin/inventory' — route này không tồn tại
+                // (gây 404). Route thật đã build là 'admin.warehouses.*' (Warehouse
+                // CRUD, xem docs/ai/change-log.md + InventoryService).
                 label: 'Kho hàng',
-                href: '/admin/inventory',
+                href: '/admin/warehouses',
                 exact: false,
+                permission: 'warehouses.view',
                 icon: icon('M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21'),
             },
             {
-                label: 'Nhập kho',
-                href: '/admin/stock-in',
+                // Tồn kho hiện tại (read-only) — route thật 'admin.stock.index',
+                // trước đây KHÔNG có mục menu nào trỏ tới đây.
+                label: 'Tồn kho',
+                href: '/admin/stock',
                 exact: false,
+                permission: 'stock.view',
+                icon: icon('M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21'),
+            },
+            {   
+                // Phase H: route thật đã có (InventoryController::createReceive/storeReceive).
+                label: 'Nhập kho',
+                href: '/admin/inventory/receive',
+                exact: false,
+                permission: 'stock.receive',
                 icon: icon('M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15m-6 3.75l3 3m0 0l3-3m-3 3V1.5'),
             },
             {
+                // Phase H: route thật đã có (InventoryController::createIssue/storeIssue), dùng FIFO.
                 label: 'Xuất kho',
-                href: '/admin/stock-out',
+                href: '/admin/inventory/issue',
                 exact: false,
+                permission: 'stock.issue',
                 icon: icon('M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15M12 12.75V1.5m0 0l-3 3m3-3l3 3'),
             },
             {
-                label: 'Chuyển kho',
-                href: '/admin/stock-transfer',
-                exact: false,
-                icon: icon('M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5'),
-            },
-            {
+                // Phase H: route thật đã có (InventoryController::createAdjustment/storeAdjustment).
                 label: 'Kiểm kê',
-                href: '/admin/stock-take',
+                href: '/admin/inventory/adjustment',
                 exact: false,
+                permission: 'stock.adjust',
                 icon: icon('M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z'),
             },
+            // TẠM ẨN — 'Chuyển kho' (transfer) vẫn ngoài phạm vi Locked
+            // Architecture Phase A-H đã chốt, cần quyết định riêng trước khi build.
+            //
+            // {
+            //     label: 'Chuyển kho',
+            //     href: '/admin/stock-transfer',
+            //     exact: false,
+            //     icon: icon('M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5'),
+            // },
         ],
     },
     {

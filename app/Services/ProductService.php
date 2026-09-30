@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Product;
 use App\Repositories\ProductRepository;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Collection;
 
 class ProductService
 {
@@ -41,6 +42,11 @@ class ProductService
         }
 
         return $this->productRepository->update($product, $data);
+    }
+
+    public function options(): Collection
+    {
+        return $this->productRepository->options();
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
@@ -19,7 +20,7 @@ class Product extends Model
         'brand_id',
         'supplier_id',
         'unit_id',
-        'img', // FK -> medias.id (media_id), cùng pattern Brand/Category
+        'img',
         'description',
         'selling_price',
         'is_active',
@@ -57,5 +58,19 @@ class Product extends Model
     public function media(): BelongsTo
     {
         return $this->belongsTo(Media::class, 'img');
+    }
+
+    /**
+     * Inventory (Phase B foundation) — CHỈ relationship, KHÔNG thêm quantity
+     * vào Product. Tồn kho thuộc về Stock/StockLot, không phải Product.
+     */
+    public function stocks(): HasMany
+    {
+        return $this->hasMany(Stock::class);
+    }
+
+    public function stockLots(): HasMany
+    {
+        return $this->hasMany(StockLot::class);
     }
 }

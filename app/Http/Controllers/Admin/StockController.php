@@ -27,6 +27,7 @@ class StockController extends Controller
         $filters = $request->only(['warehouse_id', 'search']);
 
         return Inertia::render('Admin/Stock/Index', [
+            'pageTitle' => 'Tồn kho',
             'stocks' => $this->stockService->list($filters),
             'filters' => $filters,
             'warehouseOptions' => $this->warehouseService->options(),
@@ -39,6 +40,7 @@ class StockController extends Controller
         $movements = $this->stockService->movementHistory($stock);
 
         return Inertia::render('Admin/Stock/Show', [
+            'pageTitle' => 'Chi tiết tồn kho: ' . $stock->product->name,
             'stock' => $stock,
             'movements' => $movements,
         ]);

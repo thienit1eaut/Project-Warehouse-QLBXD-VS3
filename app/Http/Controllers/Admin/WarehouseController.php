@@ -26,6 +26,7 @@ class WarehouseController extends Controller
         $filters = $request->only(['search', 'is_active']);
 
         return Inertia::render('Admin/Warehouses/Index', [
+            'pageTitle' => 'Quản lý kho hàng',
             'warehouses' => $this->warehouseService->list($filters),
             'filters' => $filters,
         ]);
@@ -33,7 +34,9 @@ class WarehouseController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('Admin/Warehouses/Form');
+        return Inertia::render('Admin/Warehouses/Form', [
+            'pageTitle' => 'Thêm kho hàng',
+        ]);
     }
 
     public function store(StoreWarehouseRequest $request)
@@ -58,6 +61,7 @@ class WarehouseController extends Controller
         ]);
 
         return Inertia::render('Admin/Warehouses/Show', [
+            'pageTitle' => 'Kho hàng: ' . $warehouse->name,
             'warehouse' => $warehouse,
             'stocks' => $stocks,
             'filters' => $filters,
@@ -67,6 +71,7 @@ class WarehouseController extends Controller
     public function edit(Warehouse $warehouse): Response
     {
         return Inertia::render('Admin/Warehouses/Form', [
+            'pageTitle' => 'Sửa kho hàng: ' . $warehouse->name,
             'warehouse' => $warehouse,
         ]);
     }

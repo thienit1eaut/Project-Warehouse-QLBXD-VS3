@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 
 class ProductRepository
 {
@@ -56,6 +57,14 @@ class ProductRepository
         $product->update($data);
 
         return $product->fresh();
+    }
+
+    public function options(): Collection
+    {
+        return Product::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'sku', 'name']);
     }
 
     public function delete(Product $product): bool
