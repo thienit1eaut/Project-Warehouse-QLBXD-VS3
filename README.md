@@ -1,4 +1,4 @@
-# Đồ án quản lý kho — DATN2026-VS2
+# Đồ án quản lý kho — DATN2026-VS3
 
 Hệ thống quản lý kho được xây dựng trong khuôn khổ đồ án tốt nghiệp, tập trung vào quản lý sản phẩm, kho hàng và các nghiệp vụ nhập — xuất — điều chỉnh tồn kho.
 
