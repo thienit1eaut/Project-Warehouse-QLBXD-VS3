@@ -76,7 +76,7 @@ class ProductController extends Controller
                 $product->only(
                     'id', 'sku', 'name', 'short_description', 'category_id', 'brand_id',
                     'supplier_id', 'unit_id', 'img', 'description',
-                    'selling_price', 'is_active'
+                    'selling_price', 'minimum_stock', 'is_active'
                 ),
                 ['media' => $product->media]
             ),

@@ -98,6 +98,10 @@ function deleteProduct() {
                             <p class="text-xs text-slate-400">Giá bán</p>
                             <p class="text-base font-semibold text-slate-800">{{ formatPrice(product.selling_price) }}</p>
                         </div>
+                        <div>
+                            <p class="text-xs text-slate-400">Tồn tối thiểu</p>
+                            <p class="text-base font-semibold text-slate-800">{{ Number(product.minimum_stock ?? 0) }}</p>
+                        </div>
                     </div>
 
                     <div v-if="product.description">

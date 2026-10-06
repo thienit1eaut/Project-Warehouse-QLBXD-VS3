@@ -15,7 +15,7 @@ class Brand extends Model
         'name',
         'slug',
         'description',
-        'img', // FK -> medias.id (media_id), KHÔNG còn là path string
+        'img',
         'website',
         'is_active',
     ];
@@ -40,10 +40,6 @@ class Brand extends Model
     /** Guard tương tự Category — Product model chưa tồn tại ở giai đoạn này. */
     public function products(): HasMany
     {
-        if (! class_exists(\App\Models\Product::class)) {
-            throw new \RuntimeException('Model Product chưa tồn tại trong project.');
-        }
-    
-        return $this->hasMany(\App\Models\Product::class);
+        return $this->hasMany(Product::class);
     }
 }

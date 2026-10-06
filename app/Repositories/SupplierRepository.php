@@ -71,6 +71,11 @@ class SupplierRepository
  
         return $supplier->products()->exists();
     }
+
+    public function isUsedByPurchaseReceipt(Supplier $supplier): bool
+    {
+        return $supplier->purchaseReceipts()->exists();
+    }
  
     // public function isUsedByPurchaseOrder(Supplier $supplier): bool
     // {

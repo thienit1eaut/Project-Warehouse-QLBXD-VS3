@@ -30,6 +30,7 @@ class ProductService
      */
     public function create(array $data): Product
     {
+        $data = $this->normalizeMinimumStock($data);
         $data['slug'] = $this->generateUniqueSlug($data['name']);
 
         return $this->productRepository->create($data);
@@ -37,6 +38,8 @@ class ProductService
 
     public function update(Product $product, array $data): Product
     {
+        $data = $this->normalizeMinimumStock($data);
+
         if (($data['name'] ?? null) !== $product->name) {
             $data['slug'] = $this->generateUniqueSlug($data['name'], excludeId: $product->id);
         }
@@ -75,5 +78,18 @@ class ProductService
         }
 
         return $slug;
+    }
+
+    /**
+     * minimum_stock không nhập (null) => KHÔNG ghi: create dùng default DB (0), update giữ nguyên giá trị cũ.
+     * Tránh ghi NULL vào cột NOT NULL.
+     */
+    protected function normalizeMinimumStock(array $data): array
+    {
+        if (array_key_exists('minimum_stock', $data) && $data['minimum_stock'] === null) {
+            unset($data['minimum_stock']);
+        }
+
+        return $data;
     }
 }

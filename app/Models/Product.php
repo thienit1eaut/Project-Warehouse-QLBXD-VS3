@@ -23,6 +23,7 @@ class Product extends Model
         'img',
         'description',
         'selling_price',
+        'minimum_stock',
         'is_active',
     ];
 
@@ -31,6 +32,7 @@ class Product extends Model
         return [
             'is_active'     => 'boolean',
             'selling_price' => 'decimal:2',
+            'minimum_stock' => 'decimal:3',
         ];
     }
 
@@ -72,5 +74,15 @@ class Product extends Model
     public function stockLots(): HasMany
     {
         return $this->hasMany(StockLot::class);
+    }
+
+    public function stockTransferItems(): HasMany
+    {
+        return $this->hasMany(StockTransferItem::class);
+    }
+
+    public function stocktakeItems(): HasMany
+    {
+        return $this->hasMany(StocktakeItem::class);
     }
 }

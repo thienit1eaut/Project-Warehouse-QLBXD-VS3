@@ -45,6 +45,11 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RolePermissionSeeder::class,
             WarehouseStockPermissionSeeder::class,
+            PurchaseReceiptPermissionSeeder::class,
+            CustomerPermissionSeeder::class,
+            SalesDocumentPermissionSeeder::class,
+            StockTransferPermissionSeeder::class,
+            StocktakePermissionSeeder::class,
             // DemoUserSeeder::class,
         ]);
     }

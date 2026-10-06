@@ -14,6 +14,12 @@ use App\Http\Controllers\Admin\MediaFolderController;
 use App\Http\Controllers\Admin\WarehouseController;
 use App\Http\Controllers\Admin\StockController;
 use App\Http\Controllers\Admin\InventoryController;
+use App\Http\Controllers\Admin\PurchaseReceiptController;
+use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\CustomerAccountController;
+use App\Http\Controllers\Admin\SalesDocumentController;
+use App\Http\Controllers\Admin\StockTransferController;
+use App\Http\Controllers\Admin\StocktakeController;
 use Illuminate\Support\Facades\Route;
 
 // ── Trang chủ redirect ──────────────────────────────────────────────────────
@@ -279,5 +285,117 @@ Route::middleware(['auth', 'active'])->prefix('admin')->name('admin.')->group(fu
             ->middleware('permission:stock.adjust')->name('adjustment.create');
         Route::post('/adjustment', [InventoryController::class, 'storeAdjustment'])
             ->middleware('permission:stock.adjust')->name('adjustment.store');
+    });
+
+        // ── Purchase Receipt (Phase I) ──────────────────────────────────────────
+    // '/create' BẮT BUỘC đặt trước '/{receipt}'.
+    Route::prefix('purchase-receipts')->name('purchase-receipts.')->group(function () {
+        Route::get('/', [PurchaseReceiptController::class, 'index'])
+            ->middleware('permission:purchase-receipt.view')->name('index');
+
+        Route::get('/create', [PurchaseReceiptController::class, 'create'])
+            ->middleware('permission:purchase-receipt.create')->name('create');
+
+        Route::post('/', [PurchaseReceiptController::class, 'store'])
+            ->middleware('permission:purchase-receipt.create')->name('store');
+
+        Route::get('/{receipt}', [PurchaseReceiptController::class, 'show'])
+            ->whereNumber('receipt')
+            ->middleware('permission:purchase-receipt.view')->name('show');
+
+        Route::post('/{receipt}/post', [PurchaseReceiptController::class, 'post'])
+            ->whereNumber('receipt')
+            ->middleware('permission:purchase-receipt.post')->name('post');
+    });
+
+        // ── Customer (Phase J) ──────────────────────────────────────────────────
+    // '/create' phải đứng trước '/{customer}'.
+    Route::prefix('customers')->name('customers.')->group(function () {
+        Route::get('/', [CustomerController::class, 'index'])
+            ->middleware('permission:customer.view')->name('index');
+        Route::get('/create', [CustomerController::class, 'create'])
+            ->middleware('permission:customer.create')->name('create');
+        Route::post('/', [CustomerController::class, 'store'])
+            ->middleware('permission:customer.create')->name('store');
+        Route::get('/{customer}', [CustomerController::class, 'show'])
+            ->whereNumber('customer')->middleware('permission:customer.view')->name('show');
+        Route::get('/{customer}/edit', [CustomerController::class, 'edit'])
+            ->whereNumber('customer')->middleware('permission:customer.update')->name('edit');
+        Route::put('/{customer}', [CustomerController::class, 'update'])
+            ->whereNumber('customer')->middleware('permission:customer.update')->name('update');
+        Route::delete('/{customer}', [CustomerController::class, 'destroy'])
+            ->whereNumber('customer')->middleware('permission:customer.delete')->name('destroy');
+
+        // CustomerAccount (back-office, dùng quyền customer.update)
+        Route::post('/{customer}/account', [CustomerAccountController::class, 'store'])
+            ->whereNumber('customer')->middleware('permission:customer.update')->name('account.store');
+        Route::patch('/{customer}/account/status', [CustomerAccountController::class, 'updateStatus'])
+            ->whereNumber('customer')->middleware('permission:customer.update')->name('account.status');
+    });
+
+        // ── Sales Document (Phase K) ────────────────────────────────────────────
+    // '/create' phải đứng trước '/{salesDocument}'.
+    Route::prefix('sales')->name('sales.')->group(function () {
+        Route::get('/', [SalesDocumentController::class, 'index'])
+            ->middleware('permission:sales-document.view')->name('index');
+        Route::get('/create', [SalesDocumentController::class, 'create'])
+            ->middleware('permission:sales-document.create')->name('create');
+        Route::post('/', [SalesDocumentController::class, 'store'])
+            ->middleware('permission:sales-document.create')->name('store');
+        Route::get('/{salesDocument}', [SalesDocumentController::class, 'show'])
+            ->whereNumber('salesDocument')->middleware('permission:sales-document.view')->name('show');
+        Route::get('/{salesDocument}/edit', [SalesDocumentController::class, 'edit'])
+            ->whereNumber('salesDocument')->middleware('permission:sales-document.update')->name('edit');
+        Route::put('/{salesDocument}', [SalesDocumentController::class, 'update'])
+            ->whereNumber('salesDocument')->middleware('permission:sales-document.update')->name('update');
+        Route::delete('/{salesDocument}', [SalesDocumentController::class, 'destroy'])
+            ->whereNumber('salesDocument')->middleware('permission:sales-document.delete')->name('destroy');
+        // POST là một operation riêng, không dùng PUT.
+        Route::post('/{salesDocument}/post', [SalesDocumentController::class, 'post'])
+            ->whereNumber('salesDocument')->middleware('permission:sales-document.post')->name('post');
+    });
+
+    // ── Stock Transfer (Phase L) ────────────────────────────────────────────
+    // '/create' phải đứng trước '/{stockTransfer}'.
+    Route::prefix('stock-transfer')->name('stock-transfer.')->group(function () {
+        Route::get('/', [StockTransferController::class, 'index'])
+            ->middleware('permission:stock-transfer.view')->name('index');
+        Route::get('/create', [StockTransferController::class, 'create'])
+            ->middleware('permission:stock-transfer.create')->name('create');
+        Route::post('/', [StockTransferController::class, 'store'])
+            ->middleware('permission:stock-transfer.create')->name('store');
+        Route::get('/{stockTransfer}', [StockTransferController::class, 'show'])
+            ->whereNumber('stockTransfer')->middleware('permission:stock-transfer.view')->name('show');
+        Route::get('/{stockTransfer}/edit', [StockTransferController::class, 'edit'])
+            ->whereNumber('stockTransfer')->middleware('permission:stock-transfer.update')->name('edit');
+        Route::put('/{stockTransfer}', [StockTransferController::class, 'update'])
+            ->whereNumber('stockTransfer')->middleware('permission:stock-transfer.update')->name('update');
+        Route::delete('/{stockTransfer}', [StockTransferController::class, 'destroy'])
+            ->whereNumber('stockTransfer')->middleware('permission:stock-transfer.delete')->name('destroy');
+        // POST là một operation riêng, không dùng PUT.
+        Route::post('/{stockTransfer}/post', [StockTransferController::class, 'post'])
+            ->whereNumber('stockTransfer')->middleware('permission:stock-transfer.post')->name('post');
+    });
+
+    // ── Stocktake (Phase M) ─────────────────────────────────────────────────
+    // '/create' phải đứng trước '/{stocktake}'.
+    Route::prefix('stocktake')->name('stocktake.')->group(function () {
+        Route::get('/', [StocktakeController::class, 'index'])
+            ->middleware('permission:stocktake.view')->name('index');
+        Route::get('/create', [StocktakeController::class, 'create'])
+            ->middleware('permission:stocktake.create')->name('create');
+        Route::post('/', [StocktakeController::class, 'store'])
+            ->middleware('permission:stocktake.create')->name('store');
+        Route::get('/{stocktake}', [StocktakeController::class, 'show'])
+            ->whereNumber('stocktake')->middleware('permission:stocktake.view')->name('show');
+        Route::get('/{stocktake}/edit', [StocktakeController::class, 'edit'])
+            ->whereNumber('stocktake')->middleware('permission:stocktake.update')->name('edit');
+        Route::put('/{stocktake}', [StocktakeController::class, 'update'])
+            ->whereNumber('stocktake')->middleware('permission:stocktake.update')->name('update');
+        Route::delete('/{stocktake}', [StocktakeController::class, 'destroy'])
+            ->whereNumber('stocktake')->middleware('permission:stocktake.delete')->name('destroy');
+        // POST là một operation riêng, không dùng PUT.
+        Route::post('/{stocktake}/post', [StocktakeController::class, 'post'])
+            ->whereNumber('stocktake')->middleware('permission:stocktake.post')->name('post');
     });
 });

@@ -31,6 +31,7 @@ const form = useForm({
     img:                props.product?.img                ?? null,
     description:        props.product?.description        ?? '',
     selling_price:      props.product?.selling_price      ?? 0,
+    minimum_stock:      props.product?.minimum_stock      ?? 0,
     is_active:          props.product?.is_active          ?? true,
 });
 
@@ -66,7 +67,7 @@ const activeTab = ref('basic');
 // Field nào lỗi thì tự nhảy về đúng tab chứa field đó — tránh user submit
 // xong tưởng form "im lặng" vì lỗi nằm ở tab đang ẩn.
 function jumpToErrorTab() {
-    const basicFields = ['sku', 'name', 'short_description', 'category_id', 'brand_id', 'supplier_id', 'unit_id', 'img', 'selling_price'];
+    const basicFields = ['sku', 'name', 'short_description', 'category_id', 'brand_id', 'supplier_id', 'unit_id', 'img', 'selling_price', 'minimum_stock'];
     const hasBasicError = basicFields.some((f) => form.errors[f]);
     if (hasBasicError) {
         activeTab.value = 'basic';
@@ -219,6 +220,22 @@ function jumpToErrorTab() {
                             />
                             <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-slate-400">đ</span>
                         </div>
+                    </InputField>
+
+                    <InputField label="Tồn tối thiểu" id="minimum_stock" :error="form.errors.minimum_stock">
+                        <input
+                            id="minimum_stock"
+                            v-model.number="form.minimum_stock"
+                            type="number"
+                            min="0"
+                            step="0.001"
+                            class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm
+                                   transition focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            :class="{ 'border-red-400': form.errors.minimum_stock }"
+                        />
+                        <p class="mt-1 text-xs text-slate-400">
+                            Dưới mức này (và còn hàng) sẽ được đánh dấu "Tồn thấp". Để 0 nếu không cần theo dõi.
+                        </p>
                     </InputField>
 
                     <div class="flex items-center gap-3">

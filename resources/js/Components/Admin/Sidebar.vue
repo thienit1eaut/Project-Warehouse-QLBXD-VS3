@@ -62,7 +62,7 @@ const emit = defineEmits(['close-mobile']);
         </div>
 
         <!-- Cài đặt — ghim ở cuối, tách bằng border -->
-        <div class="shrink-0 border-t border-slate-100 px-3 py-3">
+        <div v-if="adminMenuFooter.length" class="shrink-0 border-t border-slate-100 px-3 py-3">
             <SidebarMenu
                 :groups="[{ group: null, items: adminMenuFooter }]"
                 :collapsed="collapsed"

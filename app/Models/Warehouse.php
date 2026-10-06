@@ -39,4 +39,19 @@ class Warehouse extends Model
     {
         return $this->hasMany(StockLot::class);
     }
+
+    public function outgoingStockTransfers(): HasMany
+    {
+        return $this->hasMany(StockTransfer::class, 'from_warehouse_id');
+    }
+
+    public function incomingStockTransfers(): HasMany
+    {
+        return $this->hasMany(StockTransfer::class, 'to_warehouse_id');
+    }
+
+    public function stocktakes(): HasMany
+    {
+        return $this->hasMany(Stocktake::class);
+    }
 }

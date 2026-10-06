@@ -23,7 +23,6 @@ class StoreProductRequest extends FormRequest
             'brand_id'    => ['nullable', 'integer', Rule::exists('brands', 'id')],
             'supplier_id' => ['nullable', 'integer', Rule::exists('suppliers', 'id')],
             'unit_id'     => ['required', 'integer', Rule::exists('units', 'id')],
-            // img = media_id (int) hoặc null — cùng pattern Store/UpdateBrandRequest.
             'img' => ['nullable', 'integer', function ($attribute, $value, $fail) {
                 $media = Media::find($value);
 
@@ -38,6 +37,7 @@ class StoreProductRequest extends FormRequest
             }],
             'description'   => ['nullable', 'string', 'max:5000'],
             'selling_price' => ['required', 'numeric', 'min:0'],
+            'minimum_stock' => ['nullable', 'numeric', 'min:0', 'max:999999999999', 'decimal:0,3'],
             'is_active'     => ['boolean'],
         ];
     }
@@ -55,6 +55,9 @@ class StoreProductRequest extends FormRequest
             'unit_id.exists'        => 'Đơn vị tính không hợp lệ.',
             'selling_price.required' => 'Vui lòng nhập giá bán.',
             'selling_price.min'     => 'Giá bán không được âm.',
+            'minimum_stock.numeric' => 'Mức tồn tối thiểu phải là số.',
+            'minimum_stock.min'     => 'Mức tồn tối thiểu không được âm.',
+            'minimum_stock.decimal' => 'Mức tồn tối thiểu chỉ được có tối đa 3 chữ số thập phân.',
         ];
     }
 }

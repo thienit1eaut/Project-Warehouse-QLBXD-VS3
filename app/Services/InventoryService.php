@@ -115,6 +115,7 @@ class InventoryService
      * trong lúc chạy vòng lặp — KHÔNG tính lại/suy đoán), phản ánh chính xác
      * FIFO đã thực hiện. Không tạo Allocation cho IN/ADJUSTMENT.
      */
+    /*
     public function issueStock(int $warehouseId, int $productId, float $quantity, array $meta = []): Stock
     {
         if ($quantity <= 0) {
@@ -181,6 +182,179 @@ class InventoryService
             }
 
             return $stock;
+        });
+    }
+    **/
+
+    public function issueStock(int $warehouseId, int $productId, float $quantity, array $meta = []): Stock
+    {
+        if ($quantity <= 0) {
+            throw ValidationException::withMessages([
+                'quantity' => 'Số lượng xuất phải lớn hơn 0.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($warehouseId, $productId, $quantity, $meta) {
+            $stock = $this->lockOrCreateStock($warehouseId, $productId);
+
+            return $this->performIssue($stock, $warehouseId, $productId, $quantity, $meta)['stock'];
+        });
+    }
+
+    /**
+     * Phần FIFO + ghi sổ của nghiệp vụ xuất kho — DUY NHẤT một nơi (dùng chung bởi
+     * issueStock() và transferStock()). Chuyển nguyên văn logic cũ của issueStock(),
+     * chỉ bổ sung ghi lại received_at/expiry_date của từng lot bị consume (để transferStock()
+     * giữ tuổi lot ở kho đích).
+     *
+     * PHẢI gọi bên trong DB::transaction() với $stock đã được lock.
+     *
+     * @return array{stock: Stock, movement: StockMovement, consumed: array<int, float>, lots: array<int, array{received_at: mixed, expiry_date: mixed}>}
+     */
+    protected function performIssue(Stock $stock, int $warehouseId, int $productId, float $quantity, array $meta): array
+    {
+        $before = (float) $stock->quantity_on_hand;
+
+        if ($before < $quantity) {
+            throw ValidationException::withMessages([
+                'quantity' => "Không đủ tồn kho để xuất. Tồn hiện tại: {$before}, yêu cầu xuất: {$quantity}.",
+            ]);
+        }
+
+        $lots = $this->stockLotRepository->lockEligibleForIssue($warehouseId, $productId);
+
+        $remainingToIssue = $quantity;
+        // [lot_id => consumed_quantity] - đúng những gì FIFO đã thực hiện,
+        // dùng lại để tạo StockAllocation, KHÔNG tính lại.
+        $consumedLots = [];
+        // [lot_id => tuổi lot] - dùng cho transferStock() giữ received_at/expiry_date.
+        $consumedLotAges = [];
+
+        foreach ($lots as $lot) {
+            if ($remainingToIssue <= 0) {
+                break;
+            }
+
+            $available = (float) $lot->quantity_remaining;
+            $consume = min($available, $remainingToIssue);
+
+            if ($consume > 0) {
+                $this->stockLotRepository->decrementRemaining($lot, $consume);
+                $consumedLots[$lot->id] = $consume;
+                $consumedLotAges[$lot->id] = [
+                    'received_at' => $lot->received_at,
+                    'expiry_date' => $lot->expiry_date,
+                ];
+                $remainingToIssue -= $consume;
+            }
+        }
+
+        if ($remainingToIssue > 0) {
+            // Stock.quantity_on_hand nói đủ nhưng tổng StockLot.quantity_remaining
+            // thực tế KHÔNG đủ để consume hết yêu cầu (dữ liệu Stock/Lot lệch
+            // nhau — ví dụ Stock cũ trước Phase C chưa có Lot tương ứng).
+            // KHÔNG bypass FIFO bằng cách trừ thẳng Stock. Rollback toàn bộ.
+            throw ValidationException::withMessages([
+                'quantity' => "Không đủ StockLot khả dụng để xuất đủ {$quantity} (thiếu {$remainingToIssue}). Vui lòng kiểm tra dữ liệu tồn kho (Stock/StockLot không khớp).",
+            ]);
+        }
+
+        $after = $before - $quantity;
+
+        $this->stockRepository->updateQuantity($stock, $after);
+
+        $movement = $this->recordMovement($warehouseId, $productId, 'out', -$quantity, $before, $after, $meta);
+
+        foreach ($consumedLots as $lotId => $consumedQuantity) {
+            $this->stockAllocationRepository->create([
+                'stock_movement_id' => $movement->id,
+                'stock_lot_id' => $lotId,
+                'quantity' => $consumedQuantity,
+            ]);
+        }
+
+        return [
+            'stock' => $stock,
+            'movement' => $movement,
+            'consumed' => $consumedLots,
+            'lots' => $consumedLotAges,
+        ];
+    }
+
+    /**
+     * Chuyển kho tức thời (Phase L) — nghiệp vụ DUY NHẤT thay đổi tồn kho cho transfer.
+     *
+     * Trong 1 transaction:
+     *   1. Khóa Stock của CẢ HAI kho theo warehouse_id TĂNG DẦN (bất kể hướng chuyển),
+     *      để transfer ngược chiều A→B / B→A không khóa theo 2 thứ tự khác nhau (tránh deadlock).
+     *   2. Kho nguồn: FIFO OUT qua performIssue() (lot bị trừ, StockAllocation, movement OUT).
+     *   3. Kho đích: với MỖI lot nguồn bị consume tạo 1 StockLot MỚI, GIỮ NGUYÊN received_at và
+     *      expiry_date của lot nguồn (không gộp, không dùng now()), cộng Stock, ghi 1 movement IN
+     *      cho mỗi lot. Mọi movement mang reference của chứng từ (meta).
+     *
+     * KHÔNG gọi receiveStock() cho phía đích vì nó đặt received_at = thời điểm hiện tại.
+     *
+     * @return array{source: Stock, destination: Stock}
+     */
+    public function transferStock(
+        int $fromWarehouseId,
+        int $toWarehouseId,
+        int $productId,
+        float $quantity,
+        array $meta = []
+    ): array {
+        if ($quantity <= 0) {
+            throw ValidationException::withMessages([
+                'quantity' => 'Số lượng chuyển phải lớn hơn 0.',
+            ]);
+        }
+
+        if ($fromWarehouseId === $toWarehouseId) {
+            throw ValidationException::withMessages([
+                'to_warehouse_id' => 'Kho nguồn và kho đích phải khác nhau.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($fromWarehouseId, $toWarehouseId, $productId, $quantity, $meta) {
+            $lockOrder = [$fromWarehouseId, $toWarehouseId];
+            sort($lockOrder);
+
+            $locked = [];
+            foreach ($lockOrder as $warehouseId) {
+                $locked[$warehouseId] = $this->lockOrCreateStock($warehouseId, $productId);
+            }
+
+            $source = $locked[$fromWarehouseId];
+            $destination = $locked[$toWarehouseId];
+
+            $issued = $this->performIssue($source, $fromWarehouseId, $productId, $quantity, $meta);
+
+            $destinationQuantity = (float) $destination->quantity_on_hand;
+
+            foreach ($issued['consumed'] as $lotId => $consumedQuantity) {
+                $age = $issued['lots'][$lotId];
+
+                $before = $destinationQuantity;
+                $after = $before + $consumedQuantity;
+
+                $this->stockLotRepository->create([
+                    'stock_id' => $destination->id,
+                    'warehouse_id' => $toWarehouseId,
+                    'product_id' => $productId,
+                    'quantity_received' => $consumedQuantity,
+                    'quantity_remaining' => $consumedQuantity,
+                    'received_at' => $age['received_at'],
+                    'expiry_date' => $age['expiry_date'],
+                ]);
+
+                $this->stockRepository->updateQuantity($destination, $after);
+
+                $this->recordMovement($toWarehouseId, $productId, 'in', $consumedQuantity, $before, $after, $meta);
+
+                $destinationQuantity = $after;
+            }
+
+            return ['source' => $issued['stock'], 'destination' => $destination];
         });
     }
 

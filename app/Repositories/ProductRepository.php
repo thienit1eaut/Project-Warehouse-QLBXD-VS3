@@ -64,7 +64,26 @@ class ProductRepository
         return Product::query()
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'sku', 'name']);
+            ->get(['id', 'sku', 'name', 'selling_price']);
+    }
+
+    /** @return int[] các id tồn tại trong $ids */
+    public function existingIds(array $ids): array
+    {
+        return Product::query()
+            ->whereIn('id', $ids)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    /** [product_id => selling_price]. Dùng để snapshot giá vào chứng từ bán. */
+    public function sellingPrices(array $productIds): array
+    {
+        return Product::query()
+            ->whereIn('id', $productIds)
+            ->pluck('selling_price', 'id')
+            ->all();
     }
 
     public function delete(Product $product): bool

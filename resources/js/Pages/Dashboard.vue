@@ -1,86 +1,149 @@
 <script setup>
-import { Head, usePage } from '@inertiajs/vue3';
-import AdminLayout from '@/Layouts/AdminLayout.vue';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import AdminLayout from '@/Layouts/AdminLayout.vue';
+import { usePermission } from '@/Composables/usePermission';
 
 defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
     pageTitle: { type: String, default: 'Dashboard' },
-    stats: {
-        type: Object,
-        default: () => ({ totalUsers: 0, totalBikes: 0, totalParts: 0, lowStock: 0 }),
-    },
+    inventory: { type: Object, default: null }, // null khi không có quyền stock.view
 });
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user);
+const { can } = usePermission();
 
-const cards = computed(() => [
-    { label: 'Người dùng',      value: props.stats.totalUsers, bg: 'bg-blue-50',   text: 'text-blue-600',
-      icon: 'M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z',
-      href: '/admin/users' },
-    { label: 'Sản phẩm trong kho', value: props.stats.totalBikes, bg: 'bg-indigo-50', text: 'text-indigo-600',
-      icon: 'M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z',
-      href: '/admin/products' },
-    { label: 'Danh mục', value: props.stats.totalParts, bg: 'bg-purple-50', text: 'text-purple-600',
-      icon: 'M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3zM6 6h.008v.008H6V6z',
-      href: '/admin/categories' },
-    { label: 'Sắp hết hàng', value: props.stats.lowStock, bg: 'bg-red-50', text: 'text-red-600',
-      icon: 'M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z',
-      href: '/admin/inventory' },
-]);
+const fmt = (v) => Number(v ?? 0).toLocaleString('vi-VN', { maximumFractionDigits: 3 });
+
+const cards = computed(() => {
+    const k = props.inventory?.kpis;
+    if (!k) return [];
+
+    return [
+        { label: 'Sản phẩm (đang bán)', value: fmt(k.total_products), text: 'text-indigo-600', href: null },
+        { label: 'Kho hoạt động', value: fmt(k.total_warehouses), text: 'text-blue-600', href: null },
+        { label: 'Tổng số lượng tồn', value: fmt(k.total_on_hand), text: 'text-slate-800', href: '/admin/stock' },
+        { label: 'Sản phẩm hết hàng', value: fmt(k.out_of_stock_products), text: 'text-red-600', href: '/admin/stock?status=out_of_stock' },
+        { label: 'Sản phẩm tồn thấp', value: fmt(k.low_stock_products), text: 'text-yellow-700', href: '/admin/stock?status=low' },
+    ];
+});
+
+const draftRows = computed(() => {
+    const d = props.inventory?.drafts;
+    if (!d) return [];
+
+    return [
+        { label: 'Phiếu nhập kho', value: d.purchase_receipts, href: '/admin/purchase-receipts?status=draft', permission: 'purchase-receipt.view' },
+        { label: 'Chứng từ bán', value: d.sales_documents, href: '/admin/sales?status=draft', permission: 'sales-document.view' },
+        { label: 'Chuyển kho', value: d.stock_transfers, href: '/admin/stock-transfer?status=draft', permission: 'stock-transfer.view' },
+        { label: 'Phiếu kiểm kê', value: d.stocktakes, href: '/admin/stocktake?status=draft', permission: 'stocktake.view' },
+    ];
+});
+
+function quantityClass(m) {
+    if (m.quantity > 0) return 'text-green-700';
+    if (m.quantity < 0) return 'text-red-600';
+    return 'text-slate-500';
+}
+
+const signed = (v) => (v > 0 ? `+${fmt(v)}` : fmt(v));
 </script>
 
 <template>
     <Head :title="pageTitle" />
 
     <div class="space-y-6">
-
-        <!-- Welcome -->
         <div class="rounded-xl border border-slate-200 bg-white p-6">
-            <h2 class="text-xl font-semibold text-slate-800">
-                Xin chào, {{ user?.name }} 👋
-            </h2>
-            <p class="mt-1 text-sm text-slate-500">
-                Đây là tổng quan hệ thống quản lý kho hàng hôm nay.
-            </p>
+            <h2 class="text-xl font-semibold text-slate-800">Xin chào, {{ user?.name }} 👋</h2>
+            <p class="mt-1 text-sm text-slate-500">Tổng quan tình trạng kho hàng hôm nay.</p>
         </div>
 
-        <!-- Stat cards -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <a
-                v-for="card in cards"
-                :key="card.label"
-                :href="card.href"
-                class="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-5
-                       transition-shadow hover:shadow-sm"
-            >
-                <div :class="['flex h-12 w-12 shrink-0 items-center justify-center rounded-xl', card.bg]">
-                    <svg class="h-6 w-6" :class="card.text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                        <path stroke-linecap="round" stroke-linejoin="round" :d="card.icon" />
-                    </svg>
-                </div>
-                <div>
+        <p
+            v-if="!inventory"
+            class="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500"
+        >
+            Bạn chưa được cấp quyền xem số liệu tồn kho.
+        </p>
+
+        <template v-else>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                <component
+                    :is="card.href ? Link : 'div'"
+                    v-for="card in cards"
+                    :key="card.label"
+                    :href="card.href ?? undefined"
+                    class="rounded-xl border border-slate-200 bg-white p-5 transition-shadow"
+                    :class="card.href ? 'hover:shadow-sm' : ''"
+                >
                     <p :class="['text-2xl font-bold', card.text]">{{ card.value }}</p>
                     <p class="mt-0.5 text-sm text-slate-500">{{ card.label }}</p>
-                </div>
-            </a>
-        </div>
-
-        <!-- Stack info -->
-        <div class="rounded-xl border border-slate-200 bg-white p-6">
-            <p class="mb-3 text-xs font-medium uppercase tracking-wider text-slate-400">Tech Stack</p>
-            <div class="flex flex-wrap gap-2">
-                <span
-                    v-for="tag in ['Laravel 12', 'Inertia.js', 'Vue 3', 'Tailwind CSS 4', 'Vite', 'Sanctum']"
-                    :key="tag"
-                    class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
-                >
-                    {{ tag }}
-                </span>
+                </component>
             </div>
-        </div>
 
+            <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+                <div class="rounded-xl border border-slate-200 bg-white p-5">
+                    <h3 class="mb-3 text-sm font-semibold text-slate-700">
+                        Chứng từ nháp ({{ inventory.drafts.total }})
+                    </h3>
+                    <ul class="space-y-2 text-sm">
+                        <li v-for="d in draftRows" :key="d.label" class="flex items-center justify-between">
+                            <component
+                                :is="can(d.permission) ? Link : 'span'"
+                                :href="can(d.permission) ? d.href : undefined"
+                                :class="can(d.permission) ? 'text-indigo-600 hover:text-indigo-800' : 'text-slate-600'"
+                            >
+                                {{ d.label }}
+                            </component>
+                            <span class="font-semibold text-slate-800">{{ d.value }}</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white xl:col-span-2">
+                    <h3 class="border-b border-slate-100 px-5 py-3 text-sm font-semibold text-slate-700">
+                        Hoạt động kho gần đây
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-100 bg-slate-50 text-left">
+                                    <th class="px-4 py-2 font-medium text-slate-600">Thời gian</th>
+                                    <th class="px-4 py-2 font-medium text-slate-600">Loại</th>
+                                    <th class="px-4 py-2 text-right font-medium text-slate-600">Số lượng</th>
+                                    <th class="px-4 py-2 font-medium text-slate-600">Sản phẩm</th>
+                                    <th class="px-4 py-2 font-medium text-slate-600">Kho</th>
+                                    <th class="px-4 py-2 font-medium text-slate-600">Chứng từ</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-50">
+                                <tr v-if="inventory.recent_movements.length === 0">
+                                    <td colspan="6" class="px-4 py-8 text-center text-slate-400">Chưa có hoạt động kho.</td>
+                                </tr>
+                                <tr v-for="m in inventory.recent_movements" :key="m.id">
+                                    <td class="px-4 py-2 text-slate-500">{{ m.created_at }}</td>
+                                    <td class="px-4 py-2 text-slate-700">{{ m.type_label }}</td>
+                                    <td class="px-4 py-2 text-right font-semibold" :class="quantityClass(m)">{{ signed(m.quantity) }}</td>
+                                    <td class="px-4 py-2 text-slate-700">{{ m.product?.sku }} - {{ m.product?.name }}</td>
+                                    <td class="px-4 py-2 text-slate-500">{{ m.warehouse?.name }}</td>
+                                    <td class="px-4 py-2">
+                                        <template v-if="m.reference">
+                                            <Link
+                                                v-if="can(m.reference.permission)"
+                                                :href="m.reference.url"
+                                                class="text-indigo-600 hover:text-indigo-800"
+                                            >{{ m.reference.code }}</Link>
+                                            <span v-else class="text-slate-500">{{ m.reference.code }}</span>
+                                        </template>
+                                        <span v-else class="text-slate-300">—</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </template>
     </div>
 </template>

@@ -29,16 +29,16 @@ class Supplier extends Model
             'is_active' => 'boolean',
         ];
     }
- 
-    /** Guard tương tự Category/Brand — Product chưa tồn tại ở giai đoạn này. */
-    // public function products(): HasMany
-    // {
-    //     if (! class_exists(\App\Models\Product::class)) {
-    //         throw new \RuntimeException('Model Product chưa tồn tại trong project.');
-    //     }
- 
-    //     return $this->hasMany(\App\Models\Product::class);
-    // }
+
+    public function products(): HasMany
+    {
+        return $this->hasMany(\App\Models\Product::class);
+    }
+
+    public function purchaseReceipts(): HasMany
+    {
+        return $this->hasMany(\App\Models\PurchaseReceipt::class);
+    }
  
     /** Guard tương tự — module Purchase Order chưa tồn tại ở giai đoạn này. */
     // public function purchaseOrders(): HasMany

@@ -45,6 +45,12 @@ class SupplierService
                 'supplier' => 'Không thể xoá nhà cung cấp đang được sản phẩm sử dụng.',
             ]);
         }
+
+        if ($this->supplierRepository->isUsedByPurchaseReceipt($supplier)) {
+            throw ValidationException::withMessages([
+                'supplier' => 'Không thể xoá nhà cung cấp đã có phiếu nhập kho.',
+            ]);
+        }
  
         // if ($this->supplierRepository->isUsedByPurchaseOrder($supplier)) {
         //     throw ValidationException::withMessages([
